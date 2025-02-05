@@ -4,11 +4,13 @@ const cors = require('cors');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const upload = require('./middleware/multer.js');
+ 
 
 // Assuming you have a User model already defined
 const UserMain = require('./models/user.js');
 const User = UserMain.UserModel;
 const Candidate= UserMain.CandidateModel;
+const Job = require('./models/job.js');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -69,13 +71,22 @@ app.post('/api/login', async (req, res) => {
       expiresIn: '1h', // Token validity
     });
 
-    // Send the response
-    res.status(200).json({ message: 'Login successful', token });
+    const userDetails = {
+      userId: user._id,
+      username: user.username,
+      name: user.name,
+      email: user.email,
+    };
+
+    res.status(200).json({ message: 'Login successful', token, user: userDetails  });
   } catch (error) {
     console.error('Login error:', error.message, error.stack);
     res.status(500).json({ message: 'Server error' });
   }
 });   
+
+
+
 
 
 
@@ -148,25 +159,74 @@ app.put('/candidates/:id', upload.fields([{ name: 'profilePicture' }, { name: 'r
     res.status(500).json({ message: 'Error updating candidate', error });
   }
 });
-
-// Route to delete a candidate by ID
+// delete
 app.delete('/candidates/:id', async (req, res) => {
   try {
-    const deletedCandidate = await Candidate.findByIdAndDelete(req.params.id);
-    if (!deletedCandidate) return res.status(404).json({ message: 'Candidate not found' });
+    const deletedCandidate = await Candidate.findByIdAndDelete(req.params.id);  // Deleting by ID
+
+    if (!deletedCandidate) {
+      return res.status(404).json({ message: 'Candidate not found' });
+    }
+
     res.status(200).json({ message: 'Candidate deleted successfully', candidate: deletedCandidate });
   } catch (error) {
-    res.status(500).json({ message: 'Error deleting candidate', error });
+    console.error('Error deleting candidate:', error);
+    res.status(500).json({ message: 'Error deleting candidate', error: error.message });
   }
 });
 
 
+
+
+
+app.post('/jobs', async (req, res) => {
+  try {
+    console.log('Request body:', req.body);
+    const { title, department, tillDate } = req.body;
+
+    if (!title || !department || !tillDate) {
+      console.log('Validation error: Missing fields');
+      return res.status(400).json({ message: 'All fields are required' });
+    }
+
+    const newJob = new Job({ title, department, tillDate });
+    await newJob.save();
+
+    res.status(201).json({ message: 'Job created successfully', job: newJob });
+  } catch (error) {
+    console.error('Error creating job:', error.message); // Log only the message for clarity
+    res.status(500).json({ message: 'Error creating job', error: error.message });
+  }
+});
+
+// Get all jobs
+app.get('/jobs', async (req, res) => {
+  try {
+    const jobs = await Job.find();
+    res.status(200).json(jobs);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching jobs', error });
+  }
+});
+
+// Delete a job by ID
+app.delete('/jobs/:id', async (req, res) => {
+  try {
+    const deletedJob = await Job.findByIdAndDelete(req.params.id);
+    if (!deletedJob) return res.status(404).json({ message: 'Job not found' });
+    res.status(200).json({ message: 'Job deleted successfully', job: deletedJob });
+  } catch (error) {
+    res.status(500).json({ message: 'Error deleting job', error });
+  }
+});
 
 // Database connection
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB connected'))
   .catch((err) => console.error('Error connecting to MongoDB:', err));
+
+
 
 // Start server
 app.listen(PORT, () => {

@@ -1,10 +1,11 @@
-const mongoose = require('mongoose');  
+const mongoose = require('mongoose');
 
+// User Schema
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-});
+}, { timestamps: true });
 
 // Candidate Schema
 const candidateSchema = new mongoose.Schema({
@@ -16,12 +17,12 @@ const candidateSchema = new mongoose.Schema({
   isFresher: { type: Boolean, default: false },
   profilePicture: { type: String }, // Store file paths
   resume: { type: String }, // Store file paths
-});
+}, { timestamps: true });
 
-// const CandidateModel = mongoose.model('Candidate', candidateSchema);
 
-// Export both models
+// Export models
 module.exports = {
   UserModel: mongoose.model('User', userSchema),
   CandidateModel: mongoose.model('Candidate', candidateSchema)
-}
+  
+};
